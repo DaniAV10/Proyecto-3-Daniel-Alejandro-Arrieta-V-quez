@@ -446,5 +446,8 @@ modo_tiempo.trace_add("write", actualizar_visibilidad_reloj) #Cambiar cada vez q
 
 ventana.mainloop()
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> af3fdc1 (Guardando cambios locales)
