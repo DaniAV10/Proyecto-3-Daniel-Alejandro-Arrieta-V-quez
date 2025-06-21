@@ -1,0 +1,59 @@
+{
+  "Daniel": {
+    "jugador": "Daniel",
+    "nivel": "facil",
+    "tiempo": "00:00:00",
+    "valores_tablero": [
+      [
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "3",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ],
+    "pila_jugadas": [
+      {
+        "fila": 2,
+        "col": 2,
+        "anterior": "",
+        "nuevo": "3"
+      },
+      {
+        "fila": 1,
+        "col": 3,
+        "anterior": "",
+        "nuevo": "3"
+      }
+    ],
+    "pila_deshacer": []
+  }
+}
