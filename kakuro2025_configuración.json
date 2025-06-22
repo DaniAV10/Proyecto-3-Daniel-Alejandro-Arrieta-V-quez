@@ -1,0 +1,9 @@
+{
+  "nivel": "experto",
+  "reloj": "cronometro",
+  "tiempo": {
+    "horas": 0,
+    "minutos": 0,
+    "segundos": 0
+  }
+}
