@@ -7,7 +7,7 @@ import time, json
 def mostrar_menu_principal():
     menu = tk.Tk()
     menu.title("Menú Principal Kakuro - Daniel Alejandro Arrieta Víquez")
-    menu.geometry("500x300")
+    menu.geometry("500x500") # Se aumenta el alto para ver las otras opciones
     menu.configure(bg="white")
 
     tk.Label(menu, text="KAKURO", font=("Arial", 32, "bold"), bg="white", fg="black").pack(pady=30)
@@ -16,20 +16,30 @@ def mostrar_menu_principal():
               command=lambda: [menu.destroy(), iniciar_juego()]).pack(pady=10)
 
     tk.Button(menu, text="Opción B: Configurar", font=("Arial", 14), width=20, height=2,
-              command=lambda: messagebox.showinfo("Configurar", "Aún no implementado.")).pack()
+              command=mostrar_configuracion).pack()
+    
+    tk.Button(menu, text="Opción C: Ayuda", font=("Arial", 14), width=25, height=2,
+              command=lambda: messagebox.showinfo("Ayuda", "Aún no implementado")).pack(pady=5)
+
+    tk.Button(menu, text="Opción D: Acerca de", font=("Arial", 14), width=25, height=2,
+              command=lambda: messagebox.showinfo(
+                  "Acerca de", "Aún no implementado")).pack(pady=5)
+
+    tk.Button(menu, text="Opción E: Salir", font=("Arial", 14), width=25, height=2,
+              command=menu.destroy).pack(pady=5)
 
     menu.mainloop()
 
 
 #--------------FUNCIÓN INICIAR JUEGO------------------#
 def iniciar_juego():
-    global ventana
+    global ventana, entrada_nombre, modo_tiempo, numero_elegido, ESTRUCTURA_TABLERO, valores_tablero, boton_iniciar, botones_numeros, modo_borrador, TAMAÑO_TABLERO, CLAVES, botones_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado, nivel_actual #Se arregla bug de que las otras funciones no podían usar estas variable por ser de la función
     #------------------ VENTANA PRINCIPAL ------------------#
     ventana = tk.Tk()
     ventana.title("Kakuro-Daniel Alejandro Arrieta Víquez")
     ventana.geometry("1000x700")
     ventana.configure(bg='white')
-
+     
     entrada_nombre = tk.StringVar()
     tiempo_mostrado = tk.StringVar(value="00:00:00")
     numero_elegido = tk.StringVar(value="")
@@ -641,5 +651,86 @@ def actualizar_visibilidad_reloj(*args):
     else:
         label_tiempo.place(x=80, y=640)  #Mostrar el reloj
 
+#--------------------CONFIGURACIÓN
+def mostrar_configuracion():
+    ventana_config = tk.Toplevel()
+    ventana_config.title("Configurar Juego - Kakuro")
+    ventana_config.geometry("400x400")
+    ventana_config.configure(bg="white")
+
+    # Nivel
+    tk.Label(ventana_config, text="Nivel de Dificultad:", bg="white", font=("Arial", 12, "bold")).pack(pady=5)
+    nivel_var = tk.StringVar(value="fácil")
+    niveles = ["fácil", "medio", "difícil", "experto"]
+    for nivel in niveles:
+        tk.Radiobutton(ventana_config, text=nivel.capitalize(), variable=nivel_var, value=nivel, bg="white").pack(anchor="w", padx=20)
+
+    # Reloj
+    tk.Label(ventana_config, text="Modo de Reloj:", bg="white", font=("Arial", 12, "bold")).pack(pady=5)
+    reloj_var = tk.StringVar(value="sin_reloj")
+    modos = [("Sin reloj", "sin_reloj"), ("Cronómetro", "cronometro"), ("Temporizador", "temporizador")]
+    for texto, valor in modos:
+        tk.Radiobutton(ventana_config, text=texto, variable=reloj_var, value=valor, bg="white").pack(anchor="w", padx=20)
+
+    # Tiempo para temporizador
+    frame_tiempo = tk.Frame(ventana_config, bg="white")
+    frame_tiempo.pack(pady=10)
+    tk.Label(frame_tiempo, text="Horas:", bg="white").grid(row=0, column=0)
+    entrada_horas = tk.Entry(frame_tiempo, width=3)
+    entrada_horas.grid(row=0, column=1)
+    tk.Label(frame_tiempo, text="Minutos:", bg="white").grid(row=0, column=2)
+    entrada_minutos = tk.Entry(frame_tiempo, width=3)
+    entrada_minutos.grid(row=0, column=3)
+    tk.Label(frame_tiempo, text="Segundos:", bg="white").grid(row=0, column=4)
+    entrada_segundos = tk.Entry(frame_tiempo, width=3)
+    entrada_segundos.grid(row=0, column=5)
+
+    def guardar_configuracion():
+        reloj = reloj_var.get()
+        nivel = nivel_var.get()
+
+        # Leer campos (si están vacíos, se asume 0)
+        h = entrada_horas.get().strip()
+        m = entrada_minutos.get().strip()
+        s = entrada_segundos.get().strip()
+
+        horas = int(h) if h.isdigit() else 0
+        minutos = int(m) if m.isdigit() else 0
+        segundos = int(s) if s.isdigit() else 0
+
+        # Validaciones
+        if reloj == "temporizador":
+            if not (0 <= horas <= 2):
+                messagebox.showerror("Error", "Horas debe estar entre 0 y 2.")
+                return
+            if not (0 <= minutos <= 59):
+                messagebox.showerror("Error", "Minutos debe estar entre 0 y 59.")
+                return
+            if not (0 <= segundos <= 59):
+                messagebox.showerror("Error", "Segundos debe estar entre 0 y 59.")
+                return
+            if horas == 0 and minutos == 0 and segundos == 0:
+                messagebox.showerror("Error", "Debe configurar al menos un tiempo mayor a 0 para el temporizador.")
+                return
+
+        configuracion = {
+            "nivel": nivel,
+            "reloj": reloj,
+            "tiempo": {
+                "horas": horas,
+                "minutos": minutos,
+                "segundos": segundos
+            }
+        }
+
+        with open("kakuro2025_configuración.json", "w") as archivo:
+            json.dump(configuracion, archivo, indent=2)
+
+        messagebox.showinfo("Éxito", "Configuración guardada correctamente.")
+        ventana_config.destroy()
+
+    tk.Button(ventana_config, text="Guardar Configuración", bg="lightblue", command=guardar_configuracion).pack(pady=20)
+
+
 #----------------------------------------------
-mostrar_menu_principal() #Al ejecutar el código, se llama a la función del menú principal
+zmostrar_menu_principal() #Al ejecutar el código, se llama a la función del menú principal
