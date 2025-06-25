@@ -238,35 +238,37 @@ def elegir_numero(n):
         boton.config(bg="SystemButtonFace")
     botones_numeros[n-1].config(bg="lightblue")
 
+
 def click_en_casilla(fila, columna):
+    global modo_borrador
+
     #Validar que la casilla sea modificable
     if ESTRUCTURA_TABLERO[fila][columna] != 0:
         messagebox.showerror("Error", "Esta casilla no puede ser modificada.")
         return
-    
-    #Borrador:
-    global modo_borrador
+
     if modo_borrador:
         anterior = valores_tablero[fila][columna]
-        #Si la casilla no se puede modificar
-        if ESTRUCTURA_TABLERO[fila][columna] != 0:
-            messagebox.showerror("Error", "Esta casilla no puede ser modificada.")
-        return
         if anterior == "":
             messagebox.showinfo("Info", "La casilla ya está vacía.")
-            return
-        valores_tablero[fila][columna] = ""
-        botones_tablero[fila][columna].config(text="")
-        pila_jugadas.append({"fila": fila, "col": columna, "anterior": anterior, "nuevo": ""})
-        pila_deshacer.clear()
+        else:
+            valores_tablero[fila][columna] = ""
+            botones_tablero[fila][columna].config(text="")
+            pila_jugadas.append({"fila": fila, "col": columna, "anterior": anterior, "nuevo": ""})
+            pila_deshacer.clear()
+            messagebox.showinfo("Borrado", "Contenido eliminado.")
         modo_borrador = False  # Desactiva modo borrador
-        messagebox.showinfo("Borrado", "Contenido eliminado.")
         return
 
-    
-    if not juego_activo or ESTRUCTURA_TABLERO[fila][columna] != 0:
+    #Validar jugada normal
+    if not juego_activo or numero_elegido.get() == "":
         messagebox.showerror("ERROR", "Jugada inválida")
         return
+
+    #Aplicar número
+    anterior = valores_tablero[fila][columna]
+    nuevo = numero_elegido.get()
+
 
     #Dividir validación si no se ha seleccionado un número
     if not numero_elegido.get():
@@ -362,13 +364,46 @@ def click_en_casilla(fila, columna):
     verificar_fin()
 
 def verificar_fin():
-    for i in range(TAMAÑO_TABLERO):
-        for j in range(TAMAÑO_TABLERO):
-            if ESTRUCTURA_TABLERO[i][j] == 0 and valores_tablero[i][j] == "":
-                return
+    for (fila, columna), clave in CLAVES.items():
+        #Validar grupo de fila
+        if "fila" in clave:
+            suma = 0
+            usados = set()
+            for i in range(1, 10):  #Máximo 9 casillas a la derecha
+                c = columna + i
+                if c >= TAMAÑO_TABLERO or ESTRUCTURA_TABLERO[fila][c] != 0:
+                    break
+                valor = valores_tablero[fila][c]
+                if valor == "" or valor in usados:
+                    return  #No completado o hay repetidos
+                usados.add(valor)
+                suma += int(valor)
+            if suma != clave["fila"]:
+                return  #Suma incorrecta
+
+        #Validar grupo de columna
+        if "columna" in clave:
+            suma = 0
+            usados = set()
+            for i in range(1, 10):  #Máximo 9 casillas hacia abajo
+                f = fila + i
+                if f >= TAMAÑO_TABLERO or ESTRUCTURA_TABLERO[f][columna] != 0:
+                    break
+                valor = valores_tablero[f][columna]
+                if valor == "" or valor in usados:
+                    return  #No completado o hay repetidos
+                usados.add(valor)
+                suma += int(valor)
+            if suma != clave["columna"]:
+                return  #Suma incorrecta
+
+    #Si todo está correcto
     guardar_record(nombre_jugador, tiempo_mostrado.get(), "Fácil") 
     messagebox.showinfo("¡EXCELENTE JUGADOR!", "TERMINÓ EL JUEGO CON ÉXITO.")
     reiniciar()
+
+
+
 
 def guardar_record(nombre, tiempo, nivel_actual):
     try:
@@ -752,13 +787,6 @@ def normalizar_texto(texto):
     texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  # Quita tildes
     return texto
 
-
-
-
-
-
-
-
 #---Generar tablero
 
 def estructura_desde_partida(partida):
@@ -799,14 +827,6 @@ def estructura_desde_partida(partida):
             for i in range(1, casillas + 1):
                 if fila + i < TAMAÑO_TABLERO:
                     ESTRUCTURA_TABLERO[fila + i][columna] = 0  # Casilla blanca vacía
-
-
-
-
-
-
-
-
 
 #----------------------------------------------
 cargar_partidas_desde_archivo()
