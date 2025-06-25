@@ -1,6 +1,6 @@
 {
   "nivel": "experto",
-  "reloj": "cronometro",
+  "reloj": "sin_reloj",
   "tiempo": {
     "horas": 0,
     "minutos": 0,

@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import messagebox
 import time, json
+import random #Para cargar una partida
+import unicodedata #Normalizar texto
 
 #----------FUNCIÓN MENÚ PRINCIPAL-----------------------#
 def mostrar_menu_principal():
@@ -34,6 +36,7 @@ def mostrar_menu_principal():
 #--------------FUNCIÓN INICIAR JUEGO------------------#
 def iniciar_juego():
     global ventana, entrada_nombre, modo_tiempo, numero_elegido, ESTRUCTURA_TABLERO, valores_tablero, boton_iniciar, botones_numeros, modo_borrador, TAMAÑO_TABLERO, CLAVES, botones_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado, nivel_actual #Se arregla bug de que las otras funciones no podían usar estas variable por ser de la función
+    global partida, juego_activo
     #------------------ VENTANA PRINCIPAL ------------------#
     ventana = tk.Tk()
     ventana.title("Kakuro-Daniel Alejandro Arrieta Víquez")
@@ -43,7 +46,7 @@ def iniciar_juego():
     entrada_nombre = tk.StringVar()
     tiempo_mostrado = tk.StringVar(value="00:00:00")
     numero_elegido = tk.StringVar(value="")
-    nivel_actual = "facil"  #Variable que lleva el nivel actual, por el momento el fácil
+    nivel_actual = "FACIL"  #Variable que lleva el nivel actual, por el momento el fácil
 
 
     #Tiempo:
@@ -54,43 +57,16 @@ def iniciar_juego():
     tiempo_limite = None  #Se definirá al iniciar si es temporizador
     
     #------------------ CONFIGURACIÓN INICIAL ------------------#
+    partida = obtener_partida_aleatoria(nivel_actual)
+    if partida is None:
+        messagebox.showerror("Error", "No hay partidas disponibles para este nivel")
+        ventana.destroy()
+        return
+    
     TIEMPO_LIMITE = 2 * 60 * 60
     TAMAÑO_TABLERO = 9
-    ESTRUCTURA_TABLERO = [
-        [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-        [-1, -1, {"columna": 16}, {"columna": 24}, -1, {"columna": 17}, {"columna": 29}, {"columna": 35}, -1],
-        [-1, {"fila": 17}, 0, 0, -1, 0, 0, 0, {"columna": 7}],
-        [-1, {"fila": 16}, 0, 0, {"fila": 17}, 0, 0, 0, {"columna": 8}],
-        [-1, -1, -1, {"fila": 35}, 0, 0, 0, 0, 0],
-        [-1, {"columna": 7}, {"fila": 7}, 0, 0, {"fila": 8}, 0, 0, -1],
-        [-1, {"columna": 8}, 0, 0, {"columna": 9}, 0, 0, -1, -1],
-        [-1, -1, -1, -1, {"fila": 7}, 0, 0, -1, -1],
-        [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    ]
 
-    #Claves
-    CLAVES = {}
-    for i in range(TAMAÑO_TABLERO):
-        for j in range(TAMAÑO_TABLERO):
-            celda = ESTRUCTURA_TABLERO[i][j]
-            if isinstance(celda, dict):
-                CLAVES[(i, j)] = celda
-                ESTRUCTURA_TABLERO[i][j] = -1  
-
-
-    #Diccionario con claves de suma por grupo de fila
-    CLAVES_FILA = {
-        (1, 1): 6,  
-        (2, 1): 15,
-        (3, 1): 9
-    }
-
-    #Diccionario con claves de suma por grupo de columna
-    CLAVES_COLUMNA = {
-        (1, 1): 9,   
-        (1, 2): 9,
-        (1, 3): 12
-    }
+    estructura_desde_partida(partida)
 
     #------------------ VARIABLES DE ESTADO ------------------#
     nombre_jugador = ""
@@ -731,6 +707,107 @@ def mostrar_configuracion():
 
     tk.Button(ventana_config, text="Guardar Configuración", bg="lightblue", command=guardar_configuracion).pack(pady=20)
 
+#--------Cargar partidas json
+
+def cargar_partidas_desde_archivo():
+    global partidas_usadas , partidas_por_nivel,partidas_disponibles
+    partidas_usadas = {}
+    partidas_por_nivel = {}
+    partidas_disponibles = {}
+    try:
+        with open("kakuro2025_partidas.json", encoding="utf-8-sig") as archivo:
+            todas = json.load(archivo)
+            for partida in todas:
+                nivel = normalizar_texto(partida["nivel_de_dificultad"])
+                if nivel not in partidas_disponibles:
+                    partidas_disponibles[nivel] = []
+                partidas_disponibles[nivel].append(partida)
+    except Exception as e:
+        print("Error al cargar partidas:", e)
+        
+
+def obtener_partida_aleatoria(nivel):
+    global partidas_usadas
+    nivel = normalizar_texto(nivel)
+
+    if nivel not in partidas_disponibles:
+        return None
+
+    if nivel not in partidas_usadas:
+        partidas_usadas[nivel] = []
+
+    disponibles = [p for p in partidas_disponibles[nivel] if p["partida"] not in partidas_usadas[nivel]]
+
+    if not disponibles:
+        partidas_usadas[nivel] = []
+        disponibles = partidas_disponibles[nivel][:]
+
+    partida = random.choice(disponibles)
+    partidas_usadas[nivel].append(partida["partida"])
+    return partida
+
+def normalizar_texto(texto):
+    texto = texto.upper()
+    texto = unicodedata.normalize('NFD', texto)
+    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  # Quita tildes
+    return texto
+
+
+
+
+
+
+
+
+#---Generar tablero
+
+def estructura_desde_partida(partida):
+    global ESTRUCTURA_TABLERO, CLAVES, TAMAÑO_TABLERO
+    TAMAÑO_TABLERO = 9
+    # Inicializa matriz 9x9 con -1 (casillas negras)
+    ESTRUCTURA_TABLERO = [[-1 for _ in range(TAMAÑO_TABLERO)] for _ in range(TAMAÑO_TABLERO)]
+    CLAVES = {}
+
+    # Recorre cada clave para colocarla en el tablero y marcar casillas blancas
+    for clave in partida["claves"]:
+        tipo = clave["tipo_de_clave"]   # "F" o "C"
+        fila = clave["fila"]
+        columna = clave["columna"]
+        valor = clave["clave"]
+        casillas = clave["casillas"]
+
+        # Coloca la casilla negra que tiene la clave con valor (no puede usarse)
+        # Aquí la casilla es negra y contiene clave, se pone -1 en tablero
+        ESTRUCTURA_TABLERO[fila][columna] = -1
+
+        # Guarda la clave en CLAVES: 
+        # Si ya existe para esa posición, actualiza (puede haber clave fila y columna juntas)
+        if (fila, columna) not in CLAVES:
+            CLAVES[(fila, columna)] = {}
+
+        if tipo == "F":
+            CLAVES[(fila, columna)]["fila"] = valor
+            # Marca casillas blancas a la derecha de la clave
+            for i in range(1, casillas + 1):
+                # Solo si está dentro de límites
+                if columna + i < TAMAÑO_TABLERO:
+                    ESTRUCTURA_TABLERO[fila][columna + i] = 0  # Casilla blanca vacía
+
+        elif tipo == "C":
+            CLAVES[(fila, columna)]["columna"] = valor
+            # Marca casillas blancas hacia abajo de la clave
+            for i in range(1, casillas + 1):
+                if fila + i < TAMAÑO_TABLERO:
+                    ESTRUCTURA_TABLERO[fila + i][columna] = 0  # Casilla blanca vacía
+
+
+
+
+
+
+
+
 
 #----------------------------------------------
-zmostrar_menu_principal() #Al ejecutar el código, se llama a la función del menú principal
+cargar_partidas_desde_archivo()
+mostrar_menu_principal() #Al ejecutar el código, se llama a la función del menú principal
