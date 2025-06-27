@@ -1,19 +1,69 @@
 #proyecto3_Daniel_Alejandro_Arrieta_Víquez
+
+"""
+Fácil: Tableros con menos pistas y claves; sumas más pequeñas; grupos de 2 o 3 casillas; resolución sencilla.
+
+Medio: Aumenta el número de claves; sumas más altas; grupos de hasta 4 casillas; dificultad intermedia.
+
+Difícil: Claves con sumas altas cercanas al máximo; grupos de 4 casillas; tableros más llenos; resolución desafiante.
+
+Experto: Tableros muy densos con muchas claves y grupos grandes (4 casillas); sumas siempre altas y complejas; máxima dificultad.
+"""
+
+
+
 import tkinter as tk
 from tkinter import messagebox
 import time, json
 import random #Para cargar una partida
 import unicodedata #Normalizar texto
+from PIL import Image, ImageTk
+from tkinter import font
+
 
 #----------FUNCIÓN MENÚ PRINCIPAL-----------------------#
+
 def mostrar_menu_principal():
     menu = tk.Tk()
+    menu.configure (background="#9bbc0f")
     menu.title("Menú Principal Kakuro - Daniel Alejandro Arrieta Víquez")
     menu.geometry("500x500") # Se aumenta el alto para ver las otras opciones
-    menu.configure(bg="white")
+    menu.resizable(False,False)
 
-    tk.Label(menu, text="KAKURO", font=("Arial", 32, "bold"), bg="white", fg="black").pack(pady=30)
+    #Colores retro Game Boy
+    color_fondo = "#9bbc0f" 
+    color_oscuro = "#0f380f"  
+    color_boton = "#8bac0f"
+    color_hover = "#306230"
 
+    fuente_pixel = font.Font(family="Press Start 2P", size=10)
+
+
+    tk.Label(menu, text="KAKURO", font=fuente_pixel, bg=color_oscuro, fg="white", pady=20).pack(pady=(20, 10), fill='x')
+
+    #Función para estilo de botón retro
+    def crear_boton(texto, comando):
+        btn = tk.Button(menu, text=texto, font=fuente_pixel,
+                        width=30, height=2,
+                        bg=color_boton, fg=color_oscuro,
+                        activebackground=color_hover, activeforeground="white",
+                        relief="ridge", bd=5,
+                        command=comando)
+        btn.pack(pady=6)
+        btn.bind("<Enter>", lambda e: btn.config(bg=color_hover, fg="white"))
+        btn.bind("<Leave>", lambda e: btn.config(bg=color_boton, fg=color_oscuro))
+
+
+
+    crear_boton("Opción A: Jugar", lambda: [menu.destroy(), iniciar_juego()])
+    crear_boton("Opción B: Configurar", mostrar_configuracion)
+    crear_boton("Opción C: Ayuda", lambda: messagebox.showinfo("Ayuda", "Aún no implementado"))
+    crear_boton("Opción D: Acerca de", lambda: messagebox.showinfo("Acerca de", "Aún no implementado"))
+    crear_boton("Opción E: Salir", menu.destroy)
+
+    tk.Label(menu, text="-Daniel Alejandro Arrieta Víquez-", font=fuente_pixel, bg=color_oscuro, fg="white", pady=20).pack(pady=(20, 10), fill='x')
+
+    """
     tk.Button(menu, text="Opción A: Jugar", font=("Arial", 14), width=20, height=2,
               command=lambda: [menu.destroy(), iniciar_juego()]).pack(pady=10)
 
@@ -29,24 +79,24 @@ def mostrar_menu_principal():
 
     tk.Button(menu, text="Opción E: Salir", font=("Arial", 14), width=25, height=2,
               command=menu.destroy).pack(pady=5)
-
-    menu.mainloop()
-
+    """
 
 #--------------FUNCIÓN INICIAR JUEGO------------------#
 def iniciar_juego():
-    global ventana, entrada_nombre, modo_tiempo, numero_elegido, ESTRUCTURA_TABLERO, valores_tablero, boton_iniciar, botones_numeros, modo_borrador, TAMAÑO_TABLERO, CLAVES, botones_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado, nivel_actual #Se arregla bug de que las otras funciones no podían usar estas variable por ser de la función
-    global partida, juego_activo
+    global ventana, entrada_nombre, modo_tiempo, numero_elegido, ESTRUCTURA_TABLERO, valores_tablero, boton_iniciar, botones_numeros, modo_borrador, TAMAÑO_TABLERO, CLAVES
+    global botones_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado, nivel_actual
+    global partida, juego_activo, horas_config, label_tiempo, minutos_config, segundos_config, modo_tiempo
     #------------------ VENTANA PRINCIPAL ------------------#
     ventana = tk.Tk()
     ventana.title("Kakuro-Daniel Alejandro Arrieta Víquez")
-    ventana.geometry("1000x700")
-    ventana.configure(bg='white')
+    ventana.geometry("800x700")
+    ventana.resizable(False,False)
+    
      
     entrada_nombre = tk.StringVar()
     tiempo_mostrado = tk.StringVar(value="00:00:00")
     numero_elegido = tk.StringVar(value="")
-    nivel_actual = "FACIL"  #Variable que lleva el nivel actual, por el momento el fácil
+
 
 
     #Tiempo:
@@ -56,6 +106,29 @@ def iniciar_juego():
     segundos_config = tk.IntVar(value=0)
     tiempo_limite = None  #Se definirá al iniciar si es temporizador
     
+    #-----------------
+    modo_tiempo = tk.StringVar()
+    try:
+        with open("kakuro2025_configuración.json") as f:
+            configuracion = json.load(f)
+            modo_tiempo.set(configuracion.get("reloj", "sin_reloj"))
+            h = configuracion.get("horas", 0)
+            m = configuracion.get("minutos", 0)
+            s = configuracion.get("segundos", 0)
+            nivel_actual = normalizar_texto(configuracion.get("nivel", "fácil"))
+            print("Nivel actual cargado de configuración:", nivel_actual)
+
+    except:
+        modo_tiempo.set("sin_reloj")
+        h = m = s = 0
+    global TIEMPO_LIMITE
+    if modo_tiempo.get() == "temporizador":
+        TIEMPO_LIMITE = h * 3600 + m * 60 + s
+    else:
+        TIEMPO_LIMITE = 2 * 60 * 60  # default para cronómetro (2 horas)
+    
+    print("TIEMPO_LIMITE:", TIEMPO_LIMITE)
+
     #------------------ CONFIGURACIÓN INICIAL ------------------#
     partida = obtener_partida_aleatoria(nivel_actual)
     if partida is None:
@@ -63,7 +136,6 @@ def iniciar_juego():
         ventana.destroy()
         return
     
-    TIEMPO_LIMITE = 2 * 60 * 60
     TAMAÑO_TABLERO = 9
 
     estructura_desde_partida(partida)
@@ -78,48 +150,73 @@ def iniciar_juego():
   
     
     #------------------ INTERFAZ ------------------#
-    tk.Label(ventana, text="KAKURO", font=("Arial", 28, "bold"), bg='white').place(x=30, y=10)
-    tk.Label(ventana, text="Jugador: (1-40 caracteres)", bg='white').place(x=150, y=20)
-    tk.Entry(ventana, textvariable=entrada_nombre, width=40).place(x=500, y=20)
-    tk.Label(ventana, text="Horas", bg='white').place(x=80, y=610)
-    tk.Label(ventana, text="Minutos", bg='white').place(x=150, y=610)
-    tk.Label(ventana, text="Segundos", bg='white').place(x=230, y=610)
-    tk.Label(ventana, text="NIVEL FÁCIL", font=("Arial", 12, "bold"), bg='white').place(x=80, y=670)
+    #Colores retro Game Boy
+    color_fondo = "#9bbc0f"
+    color_oscuro = "#0f380f"
+    color_boton = "#8bac0f"
+    color_hover = "#306230"
 
+    fuente_pixel = font.Font(family="Press Start 2P", size=9 )
+
+    ventana.configure(bg=color_fondo)
+
+    """
+    tk.Label(ventana, text="KAKURO", font=("Arial", 28, "bold"), bg='white').place(x=30, y=10)
+    tk.Label(ventana, text="Jugador: (1-40 caracteres)", bg='white').place(x=350, y=20)
+    tk.Entry(ventana, textvariable=entrada_nombre, width=40).place(x=500, y=20)
+    """
+
+    tk.Label(ventana, text="KAKURO", font=fuente_pixel, bg=color_oscuro, fg="white", pady=10).place(x=30, y=10)
+    tk.Label(ventana, text="Jugador:", font=fuente_pixel, bg=color_fondo, fg=color_oscuro).place(x=350, y=20)
+    tk.Entry(ventana, textvariable=entrada_nombre, width=40).place(x=500, y=20)
+
+
+    tk.Label(ventana, text="Horas", bg='black', fg="white").place(x=200, y=620)
+    tk.Label(ventana, text="Minutos", bg='black', fg="white").place(x=150, y=620)
+    tk.Label(ventana, text="Segundos", bg='black', fg="white").place(x=230, y=620)
+    tk.Label(ventana, text="NIVEL:"+ nivel_actual, font=fuente_pixel, bg=color_fondo, fg=color_oscuro).place(x=330, y=670)
+ 
+
+
+    
     #Tiempo:
     #Etiqueta para modo de tiempo
     label_tiempo = tk.Label(ventana, textvariable=tiempo_mostrado, font=("Courier", 14), bg='white')
     label_tiempo.place(x=80, y=640)
-    tk.Label(ventana, text="Modo de Tiempo:", bg='white').place(x=700, y=10)
+    #tk.Label(ventana, text="Modo de Tiempo:", bg='white').place(x=700, y=10)
 
-    #Radio buttons para elegir modo
-    tk.Radiobutton(ventana, text="Sin Reloj", variable=modo_tiempo, value="sin_reloj", bg='white').place(x=700, y=10)
-    tk.Radiobutton(ventana, text="Cronómetro", variable=modo_tiempo, value="cronometro", bg='white').place(x=700, y=40)
-    tk.Radiobutton(ventana, text="Temporizador", variable=modo_tiempo, value="temporizador", bg='white').place(x=800, y=40)
+    """
 
-    #Entradas para configurar horas, minutos y segundos (sólo se usan si el modo es temporizador)
-    tk.Label(ventana, text="Horas:", bg='white').place(x=700, y=70)
-    tk.Spinbox(ventana, from_=0, to=23, textvariable=horas_config, width=3).place(x=750, y=70)
-
-    tk.Label(ventana, text="Minutos:", bg='white').place(x=700, y=100)
-    tk.Spinbox(ventana, from_=0, to=59, textvariable=minutos_config, width=3).place(x=750, y=100)
-
-    tk.Label(ventana, text="Segundos:", bg='white').place(x=700, y=130)
-    tk.Spinbox(ventana, from_=0, to=59, textvariable=segundos_config, width=3).place(x=750, y=130)
 
     botones_numeros = []
     for i in range(9):
         boton = tk.Button(ventana, text=str(i+1), width=4, height=2, command=lambda n=i+1: elegir_numero(n))
-        boton.place(x=880, y=100 + i*40)
+        boton.place(x=730, y=100 + i*40)
         botones_numeros.append(boton)
+
+    """
+
+    botones_numeros = []
+    for i in range(9):
+        boton = tk.Button(ventana, text=str(i+1), font=fuente_pixel, width=2, height=2,
+                          bg=color_boton, fg=color_oscuro,
+                          activebackground=color_hover, activeforeground="white",
+                          command=lambda n=i+1: elegir_numero(n))
+        boton.place(x=730, y=100 + i*40)
+        botones_numeros.append(boton)
+
+
+
+
+
     #Borrador:
     modo_borrador = False
 
     boton_goma = tk.Button(ventana, text="Goma", width=4, height=2, command=activar_borrador) #Puse goma porque borrador no cabe
-    boton_goma.place(x=880, y=100 + 9*40)
+    boton_goma.place(x=730, y=100 + 9*40)
 
 
-
+    """
     boton_iniciar = tk.Button(ventana, text="INICIAR\nJUEGO", bg="deeppink", fg="white", width=10, height=2, command=iniciar)
     boton_iniciar.place(x=30, y=500)
 
@@ -157,40 +254,75 @@ def iniciar_juego():
         botones_tablero.append(fila)
 
     modo_tiempo.trace_add("write", actualizar_visibilidad_reloj) #Cambiar cada vez que se modifique el modo de tiempo
+    """
 
+    boton_iniciar = tk.Button(ventana, text="INICIAR\nJUEGO", font=fuente_pixel,
+                              bg=color_hover, fg="white", width=12, height=2, command=iniciar)
+    boton_iniciar.place(x=30, y=500)
+
+    botones_control = [
+        ("DESHACER", "lightgreen", deshacer, 180, 500),
+        ("BORRAR", "lightsteelblue", borrar, 330, 500),
+        ("GUARDAR", "orange", guardar_juego, 480, 500),
+        ("RÉCORDS", "yellow", mostrar_records, 630, 500),
+        ("REHACER", "cyan", rehacer, 180, 570),
+        ("TERMINAR", "mediumseagreen", terminar_juego, 330, 570),
+        ("CARGAR", "chocolate", cargar_juego, 480, 570),
+    ]
+
+    for texto, color, comando, x, y in botones_control:
+        tk.Button(ventana, text=texto, font=fuente_pixel, bg=color, width=12, height=2, command=comando).place(x=x, y=y)
+
+    botones_tablero = []
+    for i in range(TAMAÑO_TABLERO):
+        fila = []
+        for j in range(TAMAÑO_TABLERO):
+            x, y = 30 + j*40, 70 + i*40
+            if ESTRUCTURA_TABLERO[i][j] == -1:
+                texto = ""
+                if (i, j) in CLAVES:
+                    clave = CLAVES[(i, j)]
+                    fila_clave = f"{clave['fila']}→" if "fila" in clave else ""
+                    columna_clave = f"↓{clave['columna']}" if "columna" in clave else ""
+                    texto = f"{fila_clave}\n{columna_clave}".strip()
+                celda = tk.Label(ventana, text=texto, bg="black", fg="white",
+                                 relief="solid", font=("Arial", 8), justify="center")
+            else:
+                celda = tk.Button(ventana, text="", command=lambda f=i, c=j: click_en_casilla(f, c))
+            celda.place(x=x, y=y, width=40, height=40)
+            fila.append(celda)
+        botones_tablero.append(fila)
+
+    modo_tiempo.trace_add("write", actualizar_visibilidad_reloj)
 
 #------------------ FUNCIONES ------------------#
 
 def actualizar_reloj():
-    global juego_activo, tiempo_inicio, modo_tiempo, tiempo_limite
+    global juego_activo, tiempo_inicio, modo_tiempo, TIEMPO_LIMITE
 
-    if not juego_activo or modo_tiempo.get() == "sin_reloj": #Si no está en jeugo o el reloj está desactivado, no se ejecutará el resto de la función
+    if not juego_activo or modo_tiempo.get() == "sin_reloj":
         return
 
     if modo_tiempo.get() == "cronometro":
         transcurrido = int(time.time() - tiempo_inicio)
-        h, m, s = transcurrido // 3600, (transcurrido % 3600) // 60, transcurrido % 60
-    if modo_tiempo.get() == "cronometro": 
-        transcurrido = int(time.time() - tiempo_inicio) #Validaciones de tiempo
-        if transcurrido > 2*3600:
-            #Si se llega a 2 horas, detener juego o mostrar mensaje
+        if transcurrido > 2 * 3600:
             messagebox.showinfo("Tiempo", "El cronómetro ha alcanzado el límite de 2 horas. Juego terminado.")
             reiniciar()
             return
         h, m, s = transcurrido // 3600, (transcurrido % 3600) // 60, transcurrido % 60
 
-    else:  #temporizador
-        tiempo_restante = tiempo_limite - int(time.time() - tiempo_inicio)
+    elif modo_tiempo.get() == "temporizador":
+        tiempo_restante = TIEMPO_LIMITE - int(time.time() - tiempo_inicio)
 
         if tiempo_restante <= 0:
-            #Temporizador llegó a 0, preguntar si quiere continuar con cronómetro
             respuesta = messagebox.askyesno("Tiempo Expirado", "TIEMPO EXPIRADO.\n¿DESEA CONTINUAR EL MISMO JUEGO (SI/NO)?")
-            if respuesta:  #Sí -> Cambiar a cronómetro con tiempo inicial igual al configurado
-                modo_tiempo.set("cronometro")  # Cambiar modo
-                tiempo_inicio = time.time() - tiempo_limite  #Ajustar tiempo_inicio para que cronómetro empiece desde tiempo_limite
-            else:  #No -> Finalizar juego
+            if respuesta:
+                modo_tiempo.set("cronometro")
+                tiempo_inicio = time.time() - TIEMPO_LIMITE
+            else:
                 messagebox.showinfo("Juego", "Juego finalizado por expiración de tiempo.")
-                reiniciar()
+                ventana.destroy()
+                mostrar_menu_principal()
             return
 
         h, m, s = tiempo_restante // 3600, (tiempo_restante % 3600) // 60, tiempo_restante % 60
@@ -198,10 +330,10 @@ def actualizar_reloj():
     tiempo_mostrado.set(f"{h:02}:{m:02}:{s:02}")
     ventana.after(1000, actualizar_reloj)
 
-
+ 
 def iniciar():
-    #Validar nombre:
-    global juego_activo, tiempo_inicio, tiempo_limite, nombre_jugador
+    global juego_activo, tiempo_inicio, nombre_jugador
+
     nombre = entrada_nombre.get().strip()
     if len(nombre) == 0:
         messagebox.showerror("ERROR", "Debe ingresar un nombre para iniciar el juego.")
@@ -210,27 +342,15 @@ def iniciar():
         messagebox.showerror("ERROR", "El nombre debe tener máximo 40 caracteres.")
         return
 
-    #Tiempo:
-    if modo_tiempo.get() == "temporizador":
-        h = horas_config.get()
-        m = minutos_config.get()
-        s = segundos_config.get()
-        tiempo_limite = h*3600 + m*60 + s
-        if tiempo_limite == 0:
-            messagebox.showerror("ERROR", "Debe configurar un tiempo mayor a cero para el temporizador.")
-            return
-    elif modo_tiempo.get() == "cronometro":
-        tiempo_limite = None
-
-    else:  #Sin reloj
-        tiempo_limite = None
+    if modo_tiempo.get() == "temporizador" and (TIEMPO_LIMITE is None or TIEMPO_LIMITE <= 0):
+        messagebox.showerror("ERROR", "Debe configurar un tiempo mayor a cero para el temporizador.")
+        return
 
     nombre_jugador = nombre
     juego_activo = True
     tiempo_inicio = time.time()
-    boton_iniciar.config(state="disabled") #Deshabilitar botón
+    boton_iniciar.config(state="disabled")
     actualizar_reloj()
-    
 
 def elegir_numero(n):
     numero_elegido.set(str(n))
@@ -398,12 +518,16 @@ def verificar_fin():
                 return  #Suma incorrecta
 
     #Si todo está correcto
-    guardar_record(nombre_jugador, tiempo_mostrado.get(), "Fácil") 
+    guardar_record(nombre_jugador, tiempo_mostrado.get(), "Fácil")
     messagebox.showinfo("¡EXCELENTE JUGADOR!", "TERMINÓ EL JUEGO CON ÉXITO.")
     reiniciar()
-
-
-
+    partida = obtener_partida_aleatoria(nivel_actual)
+    if partida is not None:
+        estructura_desde_partida(partida)
+        for i in range(TAMAÑO_TABLERO):
+            for j in range(TAMAÑO_TABLERO):
+                if ESTRUCTURA_TABLERO[i][j] == 0:
+                    botones_tablero[i][j].config(text="")
 
 def guardar_record(nombre, tiempo, nivel_actual):
     try:
@@ -701,14 +825,13 @@ def mostrar_configuracion():
         nivel = nivel_var.get()
 
         # Leer campos (si están vacíos, se asume 0)
-        h = entrada_horas.get().strip()
-        m = entrada_minutos.get().strip()
-        s = entrada_segundos.get().strip()
+        def leer_entero(campo):
+            texto = campo.get().strip()
+            return int(texto) if texto.isdigit() else 0
 
-        horas = int(h) if h.isdigit() else 0
-        minutos = int(m) if m.isdigit() else 0
-        segundos = int(s) if s.isdigit() else 0
-
+        horas = leer_entero(entrada_horas)
+        minutos = leer_entero(entrada_minutos)
+        segundos = leer_entero(entrada_segundos)
         # Validaciones
         if reloj == "temporizador":
             if not (0 <= horas <= 2):
@@ -727,11 +850,9 @@ def mostrar_configuracion():
         configuracion = {
             "nivel": nivel,
             "reloj": reloj,
-            "tiempo": {
-                "horas": horas,
-                "minutos": minutos,
-                "segundos": segundos
-            }
+            "horas": horas,
+            "minutos": minutos,
+            "segundos": segundos
         }
 
         with open("kakuro2025_configuración.json", "w") as archivo:
@@ -761,9 +882,10 @@ def cargar_partidas_desde_archivo():
         print("Error al cargar partidas:", e)
         
 
+
+
 def obtener_partida_aleatoria(nivel):
     global partidas_usadas
-    nivel = normalizar_texto(nivel)
 
     if nivel not in partidas_disponibles:
         return None
@@ -784,7 +906,7 @@ def obtener_partida_aleatoria(nivel):
 def normalizar_texto(texto):
     texto = texto.upper()
     texto = unicodedata.normalize('NFD', texto)
-    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  # Quita tildes
+    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  #Quita tildes
     return texto
 
 #---Generar tablero

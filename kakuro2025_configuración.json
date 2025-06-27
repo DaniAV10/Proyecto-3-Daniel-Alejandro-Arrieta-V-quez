@@ -1,9 +1,7 @@
 {
   "nivel": "f\u00e1cil",
-  "reloj": "sin_reloj",
-  "tiempo": {
-    "horas": 0,
-    "minutos": 0,
-    "segundos": 0
-  }
+  "reloj": "cronometro",
+  "horas": 0,
+  "minutos": 0,
+  "segundos": 0
 }
