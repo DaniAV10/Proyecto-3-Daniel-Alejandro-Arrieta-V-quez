@@ -3,14 +3,18 @@
   "medio": [],
   "dif\u00edcil": [],
   "experto": [],
-  "F\u00e1cil": [
+  "FACIL": [
     {
-      "nombre": "da",
-      "tiempo": "00:00:00"
+      "nombre": "Arrieta",
+      "tiempo": "00:00:42"
     },
     {
-      "nombre": "da",
-      "tiempo": "00:00:00"
+      "nombre": "Alejandro",
+      "tiempo": "00:00:54"
+    },
+    {
+      "nombre": "Daniel",
+      "tiempo": "00:01:32"
     }
   ]
 }
