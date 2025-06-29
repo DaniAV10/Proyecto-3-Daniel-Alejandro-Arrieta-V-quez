@@ -1,7 +1,7 @@
 {
-  "nivel": "experto",
-  "reloj": "temporizador",
-  "horas": 2,
+  "nivel": "medio",
+  "reloj": "cronometro",
+  "horas": 0,
   "minutos": 0,
-  "segundos": 1
+  "segundos": 0
 }

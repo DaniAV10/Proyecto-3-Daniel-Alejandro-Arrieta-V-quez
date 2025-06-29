@@ -9,12 +9,34 @@
       "tiempo": "00:00:42"
     },
     {
+      "nombre": "Da",
+      "tiempo": "00:00:51"
+    },
+    {
+      "nombre": "Mario",
+      "tiempo": "00:00:52"
+    },
+    {
       "nombre": "Alejandro",
       "tiempo": "00:00:54"
     },
     {
       "nombre": "Daniel",
       "tiempo": "00:01:32"
+    },
+    {
+      "nombre": "Da",
+      "tiempo": "00:01:52"
+    },
+    {
+      "nombre": "Da",
+      "tiempo": "00:02:31"
+    }
+  ],
+  "MEDIO": [
+    {
+      "nombre": "Alejandro",
+      "tiempo": "00:01:24"
     }
   ]
 }

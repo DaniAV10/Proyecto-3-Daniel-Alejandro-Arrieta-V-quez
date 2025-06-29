@@ -1,6 +1,8 @@
 #proyecto3_Daniel_Alejandro_Arrieta_Víquez
 
 """
+DIFICULTADES:
+
 Fácil: Tableros con menos pistas y claves; sumas más pequeñas; grupos de 2 o 3 casillas; resolución sencilla.
 
 Medio: Aumenta el número de claves; sumas más altas; grupos de hasta 4 casillas; dificultad intermedia.
@@ -10,6 +12,7 @@ Difícil: Claves con sumas altas cercanas al máximo; grupos de 4 casillas; tabl
 Experto: Tableros muy densos con muchas claves y grupos grandes (4 casillas); sumas siempre altas y complejas; máxima dificultad.
 """
 
+#Importar módulos:
 import tkinter as tk
 from tkinter import messagebox
 import time, json
@@ -17,6 +20,7 @@ import random #Para cargar una partida
 import unicodedata #Normalizar texto
 from PIL import Image, ImageTk
 from tkinter import font
+import os #Abrir PDFs
 
 
 #----------FUNCIÓN MENÚ PRINCIPAL-----------------------#
@@ -25,10 +29,10 @@ def mostrar_menu_principal():
     menu = tk.Tk()
     menu.configure (background="#9bbc0f")
     menu.title("Menú Principal Kakuro - Daniel Alejandro Arrieta Víquez")
-    menu.geometry("500x500") # Se aumenta el alto para ver las otras opciones
+    menu.geometry("500x500")
     menu.resizable(False,False)
 
-    #Colores retro Game Boy
+    #Colores retro, basados en los juegos de la consola "Game Boy"
     color_fondo = "#9bbc0f" 
     color_oscuro = "#0f380f"  
     color_boton = "#8bac0f"
@@ -37,9 +41,9 @@ def mostrar_menu_principal():
     fuente_pixel = font.Font(family="Press Start 2P", size=10)
 
 
-    tk.Label(menu, text="KAKURO", font=fuente_pixel, bg=color_oscuro, fg="white", pady=20).pack(pady=(20, 10), fill='x')
+    tk.Label(menu, text="*KAKURO*", font=fuente_pixel, bg=color_oscuro, fg="white", pady=20).pack(pady=(20, 10), fill='x')
 
-    #Función para estilo de botón retro
+    #Función para estilo el estilo del botón
     def crear_boton(texto, comando):
         btn = tk.Button(menu, text=texto, font=fuente_pixel,
                         width=30, height=2,
@@ -55,12 +59,23 @@ def mostrar_menu_principal():
 
     crear_boton("Opción A: Jugar", lambda: [menu.destroy(), iniciar_juego()])
     crear_boton("Opción B: Configurar", mostrar_configuracion)
-    crear_boton("Opción C: Ayuda", lambda: messagebox.showinfo("Ayuda", "Aún no implementado"))
-    crear_boton("Opción D: Acerca de", lambda: messagebox.showinfo("Acerca de", "Aún no implementado"))
+    crear_boton("Opción C: Ayuda", abrir_manual_ayuda)
+    crear_boton("Opción D: Acerca de", abrir_documentacion)
     crear_boton("Opción E: Salir", menu.destroy)
 
     tk.Label(menu, text="-Daniel Alejandro Arrieta Víquez-", font=fuente_pixel, bg=color_oscuro, fg="white", pady=20).pack(pady=(20, 10), fill='x')
 
+def abrir_manual_ayuda():
+    try:
+        os.startfile("pc_manual_de_usuario.pdf")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo abrir el manual de usuario.\n{e}")
+
+def abrir_documentacion():
+    try:
+        os.startfile("pc_documentación_del_proyecto.pdf")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo abrir la documentación del proyecto.\n{e}")
 
 
 def formatear_tiempo(segundos):
@@ -478,44 +493,41 @@ def click_en_casilla(fila, columna):
     verificar_fin()
 
 def verificar_fin():
-    #Reiniciar juego con nueva partida aleatoria del mismo nivel
     global juego_activo, valores_tablero, pila_jugadas, pila_deshacer, tiempo_inicio
 
     for i in range(TAMAÑO_TABLERO):
         for j in range(TAMAÑO_TABLERO):
             if ESTRUCTURA_TABLERO[i][j] == 0 and valores_tablero[i][j] == "":
-                return  #Todavía hay casillas vacías
+                return  # Todavía hay casillas vacías
 
-    #Si no hay vacías, entonces GANÓ
+    #Guardar récord automáticamente
+    guardar_record(nombre_jugador, tiempo_mostrado.get(), nivel_actual)
+
+    #Mostrar mensaje de victoria
     messagebox.showinfo("¡FELICIDADES!", "¡Has completado el Kakuro correctamente!")
 
-   
-
+    #Obtener nueva partida aleatoria del mismo nivel de dificultad
     partida = obtener_partida_aleatoria(nivel_actual)
     if partida is None:
         messagebox.showerror("Error", "No hay más partidas disponibles.")
         return
 
+    #Cargar la nueva estructura del tablero
     estructura_desde_partida(partida)
 
+    #Reiniciar las estructuras internas
     valores_tablero = [["" for _ in range(TAMAÑO_TABLERO)] for _ in range(TAMAÑO_TABLERO)]
     pila_jugadas.clear()
     pila_deshacer.clear()
     juego_activo = False
     tiempo_inicio = None
 
-    for i in range(TAMAÑO_TABLERO):
-        for j in range(TAMAÑO_TABLERO):
-            if ESTRUCTURA_TABLERO[i][j] == 0:
-                botones_tablero[i][j].config(text="", command=lambda f=i, c=j: click_en_casilla(f, c))
-            else:
-                clave = CLAVES.get((i, j), {})
-                texto_fila = f"{clave.get('fila', '')}\u2192" if 'fila' in clave else ""
-                texto_columna = f"\u2193{clave.get('columna', '')}" if 'columna' in clave else ""
-                texto = f"{texto_fila}\n{texto_columna}".strip()
-                botones_tablero[i][j].config(text=texto)
+    #Redibujar el tablero completo
+    reiniciar_tablero()
 
+    #Habilitar botón para que el jugador inicie el nuevo juego
     boton_iniciar.config(state="normal")
+
 
 
 def guardar_record(nombre, tiempo, nivel_actual):
@@ -561,6 +573,7 @@ def reiniciar():
 
 def deshacer():
     if not pila_jugadas:
+        messagebox.showwarning("SIN JUGADAS", "No hay jugadas para deshacer")
         return
     jugada = pila_jugadas.pop()
     f, c = jugada["fila"], jugada["col"]
@@ -570,7 +583,7 @@ def deshacer():
 
 def rehacer():
     if not pila_deshacer:
-        messagebox.showwarning("Sin jugadas", "No hay jugadas para rehacer")
+        messagebox.showwarning("SIN JUGADAS", "No hay jugadas para rehacer")
         return
     jugada = pila_deshacer.pop()
     f, c = jugada["fila"], jugada["col"]
@@ -704,24 +717,18 @@ def terminar_juego():
             ventana.after_cancel(id_reloj)
             id_reloj = None
 
-        reiniciar()
+        reiniciar()  #Limpia estructuras internas
 
         #Obtener una nueva partida aleatoria del mismo nivel
         partida = obtener_partida_aleatoria(nivel_actual)
         if partida:
             estructura_desde_partida(partida)
+            valores_tablero = [["" for _ in range(TAMAÑO_TABLERO)] for _ in range(TAMAÑO_TABLERO)]
+            pila_jugadas.clear()
+            pila_deshacer.clear()
+            tiempo_inicio = None
 
-            for i in range(TAMAÑO_TABLERO):
-                for j in range(TAMAÑO_TABLERO):
-                    if ESTRUCTURA_TABLERO[i][j] == 0:
-                        valores_tablero[i][j] = ""
-                        botones_tablero[i][j].config(text="", state="normal")
-                    elif ESTRUCTURA_TABLERO[i][j] == -1 and (i, j) in CLAVES:
-                        clave = CLAVES[(i, j)]
-                        texto_fila = f"{clave.get('fila', '')}\u2192" if 'fila' in clave else ""
-                        texto_columna = f"\u2193{clave.get('columna', '')}" if 'columna' in clave else ""
-                        texto = f"{texto_fila}\n{texto_columna}".strip()
-                        botones_tablero[i][j].config(text=texto, state="disabled")
+            reiniciar_tablero()  #Redibuja visualmente todo correctamente
 
         #Restablecer reloj
         if modo_tiempo.get() == "temporizador":
@@ -746,8 +753,6 @@ def reiniciar_tablero():
 
     juego_activo = False  #Detener el juego al reiniciar
 
-    valores_tablero = [["" for _ in range(TAMAÑO_TABLERO)] for _ in range(TAMAÑO_TABLERO)]
-
     for i in range(TAMAÑO_TABLERO):
         for j in range(TAMAÑO_TABLERO):
             if ESTRUCTURA_TABLERO[i][j] == -1:  #Casilla negra con posible clave
@@ -758,25 +763,26 @@ def reiniciar_tablero():
                     texto = f"{fila_clave}\n{columna_clave}".strip()
 
                 #Convertir botón en etiqueta negra con clave
-                botones_tablero[i][j].destroy()  # Destruye el botón viejo
+                if isinstance(botones_tablero[i][j], tk.Widget):
+                    botones_tablero[i][j].destroy()
                 etiqueta = tk.Label(ventana, text=texto, bg="black", fg="white",
                                     relief="solid", font=("Arial", 8), justify="center")
                 etiqueta.place(x=30 + j*40, y=70 + i*40, width=40, height=40)
                 botones_tablero[i][j] = etiqueta
 
-            else:  #Casilla blanca (editable)
+            else:  #Casilla blanca
                 #Si antes había una etiqueta, destruirla y crear botón
-                if isinstance(botones_tablero[i][j], tk.Label):
+                if isinstance(botones_tablero[i][j], tk.Widget):
                     botones_tablero[i][j].destroy()
-                    boton = tk.Button(ventana, text="", bg="SystemButtonFace", fg="black",
-                                      relief="raised", command=lambda f=i, c=j: click_en_casilla(f, c))
-                    boton.place(x=30 + j*40, y=70 + i*40, width=40, height=40)
-                    botones_tablero[i][j] = boton
-                else:
-                    #Reiniciar su estado y texto
-                    botones_tablero[i][j].config(text="", bg="SystemButtonFace", fg="black", relief="raised", state="normal")
 
-    #Reiniciar pila y otras variables
+                valor = valores_tablero[i][j]
+                boton = tk.Button(ventana, text=valor if valor else "", fg="black",
+                                  bg="SystemButtonFace", relief="raised",
+                                  command=lambda f=i, c=j: click_en_casilla(f, c))
+                boton.place(x=30 + j*40, y=70 + i*40, width=40, height=40)
+                botones_tablero[i][j] = boton
+
+    #Reiniciar pilas y selección visual
     pila_jugadas.clear()
     pila_deshacer.clear()
     numero_elegido.set("")
@@ -787,23 +793,23 @@ def reiniciar_tablero():
 #Guardar juego:
 
 def guardar_juego():
-    global juego_activo
+    global juego_activo, ventana
 
     if not juego_activo:
         messagebox.showwarning("Advertencia", "NO SE HA INICIADO EL JUEGO")
         return
 
-    #Detener el reloj
-    juego_activo = False
+    juego_activo = False  #Detener el juego
 
-    #Crear estructura de datos
     datos = {
         "jugador": nombre_jugador,
         "nivel": nivel_actual,
         "tiempo": tiempo_mostrado.get(),
         "valores_tablero": valores_tablero,
         "pila_jugadas": pila_jugadas,
-        "pila_deshacer": pila_deshacer
+        "pila_deshacer": pila_deshacer,
+        "estructura": ESTRUCTURA_TABLERO,
+        "claves": {str(k): v for k, v in CLAVES.items()}  #Convertir claves a string
     }
 
     try:
@@ -812,24 +818,23 @@ def guardar_juego():
     except:
         juegos_guardados = {}
 
-    #Reemplazar partida del mismo jugador
     juegos_guardados[nombre_jugador] = datos
 
     with open("kakuro2025_juego_actual.json", "w") as archivo:
         json.dump(juegos_guardados, archivo, indent=2)
 
-    #Preguntar si desea seguir
     respuesta = messagebox.askyesno("Juego guardado", "¿VA A CONTINUAR JUGANDO?")
     if respuesta:
         juego_activo = True
         actualizar_reloj()
     else:
-        reiniciar()
+        ventana.destroy()
+        mostrar_menu_principal()
 
-#Cargar juego:
 
 def cargar_juego():
-    global valores_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado, nombre_jugador, nivel_actual, juego_activo
+    global valores_tablero, pila_jugadas, pila_deshacer, tiempo_mostrado
+    global nombre_jugador, nivel_actual, juego_activo
 
     if juego_activo:
         messagebox.showwarning("Advertencia", "NO SE PUEDE CARGAR UN JUEGO YA INICIADO")
@@ -859,14 +864,27 @@ def cargar_juego():
     pila_jugadas = datos.get("pila_jugadas", [])
     pila_deshacer = datos.get("pila_deshacer", [])
 
-    #Refrescar la interfaz del tablero
+    #Reconstruir estructura y claves
+    estructura = datos.get("estructura")
+    claves = datos.get("claves")
+    if estructura and claves:
+        ESTRUCTURA_TABLERO[:] = estructura
+        CLAVES.clear()
+        for k, v in claves.items():
+            fila, col = map(int, k.strip("()").split(","))
+            CLAVES[(fila, col)] = v
+
+    reiniciar_tablero()  #Redibuja tablero con estructura original
+
+    #Rellenar casillas con los valores que el usuario había ingresado
     for i in range(TAMAÑO_TABLERO):
         for j in range(TAMAÑO_TABLERO):
             if ESTRUCTURA_TABLERO[i][j] == 0:
                 valor = valores_tablero[i][j]
-                botones_tablero[i][j].config(text=valor)
+                botones_tablero[i][j].config(text=valor, fg="black")
 
     messagebox.showinfo("Partida cargada", "Juego cargado correctamente. Pulse INICIAR JUEGO para continuar.")
+
 
 
 def activar_borrador():
@@ -905,7 +923,7 @@ def mostrar_configuracion():
     ventana_config.configure(bg="#9bbc0f")
     ventana_config.resizable(False, False)
 
-    #Colores y fuente Game Boy
+    #Colores y fuentes estilo Game Boy
     color_fondo = "#9bbc0f"
     color_oscuro = "#0f380f"
     color_boton = "#8bac0f"
@@ -927,7 +945,7 @@ def mostrar_configuracion():
     except:
         pass  #Si no existe o hay error, usamos valores por defecto
 
-    #Función para botón estilo Game Boy
+    #Función para botón
     def crear_boton(texto, comando):
         btn = tk.Button(ventana_config, text=texto, font=fuente_pixel,
                         width=35, height=2,
@@ -1022,20 +1040,6 @@ def mostrar_configuracion():
         minutos = leer_entero(entrada_minutos)
         segundos = leer_entero(entrada_segundos)
 
-        if reloj == "temporizador":
-            if not (0 <= horas <= 2):
-                messagebox.showerror("ERROR", "Las horas deben estar entre 0 y 2.")
-                return
-            if not (0 <= minutos <= 59):
-                messagebox.showerror("ERROR", "Los minutos deben estar entre 0 y 59.")
-                return
-            if not (0 <= segundos <= 59):
-                messagebox.showerror("ERROR", "Los segundos deben estar entre 0 y 59.")
-                return
-            if horas == 0 and minutos == 0 and segundos == 0:
-                messagebox.showerror("ERROR", "El tiempo debe ser mayor a 0.")
-                return
-
         configuracion = {
             "nivel": nivel,
             "reloj": reloj,
@@ -1094,7 +1098,7 @@ def obtener_partida_aleatoria(nivel):
 def normalizar_texto(texto):
     texto = texto.upper()
     texto = unicodedata.normalize('NFD', texto)
-    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  #Quita tildes
+    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')  #Quitar las tildes
     return texto
 
 #---Generar tablero
