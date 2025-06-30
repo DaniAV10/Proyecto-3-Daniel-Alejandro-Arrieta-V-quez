@@ -67,13 +67,13 @@ def mostrar_menu_principal():
 
 def abrir_manual_ayuda():
     try:
-        os.startfile("pc_manual_de_usuario.pdf")
+        os.startfile("kakuro_manual_de_usuario.pdf")
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo abrir el manual de usuario.\n{e}")
 
 def abrir_documentacion():
     try:
-        os.startfile("pc_documentación_del_proyecto.pdf")
+        os.startfile("kakuro_documentación_del_proyecto.pdf")
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo abrir la documentación del proyecto.\n{e}")
 
