@@ -152,7 +152,7 @@ def iniciar_juego():
 
     partida = obtener_partida_aleatoria(nivel_actual)
     if partida is None:
-        messagebox.showerror("Error", "No hay partidas disponibles para este nivel")
+        messagebox.showerror("ERROR", "No hay partidas disponibles para este nivel")
         ventana.destroy()
         mostrar_menu_principal()
         return
@@ -459,7 +459,7 @@ def click_en_casilla(fila, columna):
             if valor != "":
                 suma_fila += int(valor)
         if suma_fila > clave:
-            messagebox.showerror("Error", f"JUGADA NO ES VÁLIDA PORQUE LA SUMA DE LA FILA ES {suma_fila} Y LA CLAVE NUMÉRICA ES {clave}")
+            messagebox.showerror("ERROR", f"JUGADA NO ES VÁLIDA PORQUE LA SUMA DE LA FILA ES {suma_fila} Y LA CLAVE NUMÉRICA ES {clave}")
             return
 
     #Validar suma del grupo de columna
@@ -480,7 +480,7 @@ def click_en_casilla(fila, columna):
             if valor != "":
                 suma_columna += int(valor)
         if suma_columna > clave:
-            messagebox.showerror("Error", f"JUGADA NO ES VÁLIDA PORQUE LA SUMA DE LA COLUMNA ES {suma_columna} Y LA CLAVE NUMÉRICA ES {clave}")
+            messagebox.showerror("ERROR", f"JUGADA NO ES VÁLIDA PORQUE LA SUMA DE LA COLUMNA ES {suma_columna} Y LA CLAVE NUMÉRICA ES {clave}")
             return
 
     valores_tablero[fila][columna] = nuevo
@@ -893,7 +893,7 @@ def activar_borrador():
     numero_elegido.set("")  #Deseleccionar número
     for b in botones_numeros:
         b.config(bg="SystemButtonFace")
-    messagebox.showinfo("Borrador", "Seleccione una casilla para borrar su contenido.")
+    messagebox.showinfo("BORRADOR<", "Seleccione una casilla para borrar su contenido.")
 
 
   
